@@ -1,0 +1,6 @@
+DomainName: localhost
+Port: 8080
+Resources:
+  - DomainName: localhost
+    Endpoint: "/"
+    Port: 8000
