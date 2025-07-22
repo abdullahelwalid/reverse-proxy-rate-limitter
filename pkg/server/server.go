@@ -14,11 +14,20 @@ import (
 	"github.com/abdullahelwalid/go-rate-limiter/pkg/limitter"
 )
 
+func ErrorHandler(w http.ResponseWriter, r *http.Request, e error) {
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusBadGateway)
+	json.NewEncoder(w).Encode(map[string]string{
+		"error": "Bad Gateway",
+	})
+}
+
 func RunServer(proxyConfig config.Proxy) error {
 	mux := http.NewServeMux()
 	for _, resource := range proxyConfig.Resources {
 		url, _ := url.Parse("http://" + resource.DomainName + ":" + strconv.Itoa(resource.Port))
 		proxy := httputil.NewSingleHostReverseProxy(url)
+		proxy.ErrorHandler = ErrorHandler
 
 		handler := func(p *httputil.ReverseProxy) func(w http.ResponseWriter, r *http.Request) {
 			return func(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +43,7 @@ func RunServer(proxyConfig config.Proxy) error {
 				clientToken := &limitter.ClientToken{IPAddr: ipAddr}
 				err := clientToken.Consume()
 
-				if err.Error() == "Limit Exceeded" {
+				if err != nil && err.Error() == "Limit Exceeded" {
 					w.Header().Add("Content-Type", "application/json")
 					w.WriteHeader(http.StatusTooManyRequests)
 					json.NewEncoder(w).Encode(map[string]string{"error": "Too many requests"})

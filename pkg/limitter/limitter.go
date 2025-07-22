@@ -81,7 +81,7 @@ func (c *ClientToken) Consume() error {
 	}
 	// Consume token with current TTL
 	RedisClient.Set(context.TODO(), c.IPAddr, tokenInt-1, redis.KeepTTL)
-	return err
+	return nil
 }
 
 // Retrieve Client Token from Redis
