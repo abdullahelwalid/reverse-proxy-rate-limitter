@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -31,22 +30,24 @@ func RunServer(proxyConfig config.Proxy) error {
 				path := r.URL.Path
 				var endpoint string = "/"
 				r.URL.Path = strings.TrimLeft(path, endpoint)
-				clientToken := &limitter.ClientToken{IPAddr: r.RemoteAddr}
+				ipAddr := strings.Split(r.RemoteAddr, ":")[0]
+				clientToken := &limitter.ClientToken{IPAddr: ipAddr}
 				err := clientToken.Consume()
-				var errLimitExceed limitter.ErrorClientTokenLimitExceed
-				if errors.Is(err, &errLimitExceed) {
+
+				if err.Error() == "Limit Exceeded" {
 					w.Header().Add("Content-Type", "application/json")
 					w.WriteHeader(http.StatusTooManyRequests)
 					json.NewEncoder(w).Encode(map[string]string{"error": "Too many requests"})
 					return
 				} else if err != nil {
+					fmt.Println(err)
 					w.Header().Add("Content-Type", "application/json")
 					w.WriteHeader(http.StatusInternalServerError)
 					json.NewEncoder(w).Encode(map[string]string{"error": "An error has occurred"})
 					return
 				}
 				// Note that ServeHttp is non blocking and uses a go routine under the hood
-				fmt.Printf("[ TinyRP ] Redirecting request to %s from %s at %s\n", r.URL, r.RemoteAddr, time.Now().UTC())
+				fmt.Printf("[ TinyRP ] Redirecting request to %s from %s at %s\n", r.URL, ipAddr, time.Now().UTC())
 				proxy.ServeHTTP(w, r)
 			}
 		}

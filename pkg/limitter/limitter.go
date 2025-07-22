@@ -65,8 +65,7 @@ func (c *ClientToken) Save() error {
 func (c *ClientToken) Consume() error {
 	token, err := RedisClient.Get(context.TODO(), c.IPAddr).Result()
 	if errors.Is(err, redis.Nil) {
-		fmt.Println("No record found")
-		c.Tokens = 20
+		c.Tokens = 10
 		c.Save()
 		return nil
 	} else if err != nil {
